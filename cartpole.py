@@ -1,7 +1,31 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from keras import Sequential
+from keras.layers import Dense
 import dqn_agent
+
+sns.set(style="whitegrid")
+
+def plot_time_loss(episodes, time_values, loss_values):
+    plt.ion()
+    plt.figure(1)
+    plt.subplot(211)
+    plt.plot(episodes, time_values)
+    plt.draw()
+    plt.pause(0.001)
+    plt.ylabel("time values")
+    plt.xlabel("episodes")
+
+    plt.subplot(212)
+    plt.plot(episodes, loss_values)
+    plt.draw()
+    plt.pause(0.001)
+    plt.ylabel("loss values")
+    plt.xlabel("episodes")
+
+    plt.show(block=False)
 
 load_model = False
 
@@ -17,20 +41,16 @@ action_size = env.action_space.n
 print('action space', env.action_space)
 print('action size', env.action_space.n)
 
+# model
+model = Sequential()
+model.add(Dense(256, input_dim=state_size, activation='relu'))
+model.add(Dense(512, activation='relu'))
+model.add(Dense(action_size, activation='linear'))
+
 episodes, loss_values, time_values = [], [], []
 
-plt.ion()
-plt.figure(1)
-plt.subplot(211)
-plt.ylabel("time values")
-plt.xlabel("episodes")
-plt.subplot(212)
-plt.ylabel("loss values")
-plt.xlabel("episodes")
-plt.show(block=False)
-
-agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, learning_rate=0.001, queue_size=10000,
-                                 batch_mode=True, batch_size=100, eps_decay=0.999)
+agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
+                                 queue_size=10000, batch_mode=True, batch_size=100, eps_decay=0.999)
 
 if load_model:
     agent.load_model()
@@ -62,15 +82,6 @@ for e in range(10000):
                     time_values.append(time)
                     loss_values.append(hist.history.get("loss")[0]) if hist is not None else loss_values.append(0)
 
-                    plt.subplot(211)
-                    plt.plot(episodes, time_values)
-                    plt.draw()
-                    plt.pause(0.001)
-
-                    plt.subplot(212)
-                    plt.plot(episodes, loss_values)
-                    plt.draw()
-                    plt.pause(0.001)
-
+                    plot_time_loss(episodes, time_values, loss_values)
 
                 break
