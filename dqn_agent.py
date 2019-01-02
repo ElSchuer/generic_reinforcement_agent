@@ -1,15 +1,11 @@
-import gym
 import numpy as np
 import random
-import matplotlib.pyplot as plt
 from collections import deque
-from keras import Sequential
-from keras.layers import Dense
 from keras.optimizers import Adam
 
 
 class QLearningAgent:
-    def __init__(self, state_size, action_size, decay_rate=0.95, batch_mode=True, batch_size=100, model_name='model.h5', learning_rate = 0.001, queue_size=10000,
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, batch_mode=True, batch_size=100, model_name='model.h5', learning_rate = 0.001, queue_size=10000,
                  eps_start = 1.0, eps_min = 0.01, eps_decay = 0.999):
         self.decay_rate = decay_rate
         self.state_size = state_size
@@ -26,16 +22,9 @@ class QLearningAgent:
         self.batch_size = batch_size
         self.data_batch = deque(maxlen=queue_size)
 
-        self.model = self.get_model()
+        self.model = model
+        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
-    def get_model(self):
-        model = Sequential()
-        model.add(Dense(256, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(512, activation='relu'))
-        model.add(Dense(self.action_size, activation='linear'))
-        model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
-
-        return model
 
     def save_model(self):
         self.model.save(self.model_name)
