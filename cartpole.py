@@ -8,9 +8,10 @@ import dqn_agent
 
 sns.set(style="whitegrid")
 
+plot_init = False
+
 def plot_time_loss(episodes, time_values, loss_values):
     plt.ion()
-    plt.figure(1)
     plt.subplot(211)
     plt.plot(episodes, time_values)
     plt.draw()
@@ -30,6 +31,7 @@ def plot_time_loss(episodes, time_values, loss_values):
 load_model = False
 
 env = gym.make('CartPole-v1')
+#env = gym.make('Enduro-v0')
 
 # states: consists of sin and cos of the two joint angles and the angular velocities of the joints
 # [cos(theta1), sin(theta1), cos(theta2), sin(theta2), thetaDot1, thetaDot2]
@@ -43,8 +45,9 @@ print('action size', env.action_space.n)
 
 # model
 model = Sequential()
-model.add(Dense(256, input_dim=state_size, activation='relu'))
-model.add(Dense(512, activation='relu'))
+model.add(Dense(32, input_dim=state_size, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(64, activation='relu'))
 model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
@@ -77,11 +80,11 @@ for e in range(10000):
                 if hist is not None:
                     print("Episode {}, time {}, loss {:.2}, eps {:.4}".format(e, time, hist.history.get("loss")[0], agent.eps))
 
-                if e % 10 == 0:
-                    episodes.append(e)
-                    time_values.append(time)
-                    loss_values.append(hist.history.get("loss")[0]) if hist is not None else loss_values.append(0)
+                #if e % 10 == 0:
+                episodes.append(e)
+                time_values.append(time)
+                loss_values.append(hist.history.get("loss")[0]) if hist is not None else loss_values.append(0)
 
-                    plot_time_loss(episodes, time_values, loss_values)
+                plot_time_loss(episodes, time_values, loss_values)
 
                 break

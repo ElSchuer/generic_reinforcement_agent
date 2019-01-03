@@ -44,13 +44,14 @@ print('action size', env.action_space.n)
 # model
 model = Sequential()
 model.add(Dense(64, input_dim=state_size, activation='relu'))
-model.add(Dense(128, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(64, activation='relu'))
 model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
 
 agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
-                                 queue_size=10000, batch_mode=True, batch_size=100, eps_decay=0.995)
+                                 queue_size=2000, batch_mode=True, batch_size=50, eps_decay=0.995)
 
 if load_model:
     agent.load_model()
@@ -69,8 +70,12 @@ for e in range(10000):
             hist = agent.train(state, next_state, reward, action, done)
 
             # Adjust reward for task completion
-            if state[0][0] >= 0.5:
-                reward += 1
+            #if state[0][0] >= -0.3:
+            #    reward += abs(state[0][0])
+
+            reward = abs(state[0][0] + 0.5)
+
+            #print('reward', reward, ' state ', state[0][0])
 
             state = next_state
 
