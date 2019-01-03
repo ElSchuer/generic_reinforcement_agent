@@ -6,27 +6,42 @@ from keras import Sequential
 from keras.layers import Dense
 import dqn_agent
 
-sns.set(style="whitegrid")
+class RLEvaluation:
+    def __init__(self, episode_ticks = 1):
+        self.episodes, self.loss_values, self.score_values = [], [], []
+        self.episode_ticks = episode_ticks
 
-plot_init = False
+        #init plots
+        sns.set(style="whitegrid")
+        plt.ion()
+        self.loss_plot = plt.subplot(211)
+        self.score_plot = plt.subplot(212)
+        self.loss_plot.set_ylabel("loss values")
+        self.loss_plot.set_xlabel("episodes")
+        self.score_plot.set_ylabel("score values")
+        self.score_plot.set_xlabel("episodes")
+        plt.show(block=False)
 
-def plot_time_loss(episodes, time_values, loss_values):
-    plt.ion()
-    plt.subplot(211)
-    plt.plot(episodes, time_values)
-    plt.draw()
-    plt.pause(0.001)
-    plt.ylabel("time values")
-    plt.xlabel("episodes")
+    def plot_train_loss(self):
+        self.loss_plot.plot(self.episodes, self.loss_values)
+        plt.draw()
+        plt.pause(0.001)
 
-    plt.subplot(212)
-    plt.plot(episodes, loss_values)
-    plt.draw()
-    plt.pause(0.001)
-    plt.ylabel("loss values")
-    plt.xlabel("episodes")
+    def plot_score(self):
+        self.score_plot.plot(self.episodes, self.score_values)
+        plt.draw()
+        plt.pause(0.001)
 
-    plt.show(block=False)
+    def visualize_data(self, episode, loss, score):
+        self.episodes.append(episode)
+        self.loss_values.append(loss)
+        self.score_values.append(score)
+
+        if episode % self.episode_ticks == 0:
+            self.plot_score()
+            self.plot_train_loss()
+
+
 
 load_model = False
 
@@ -55,6 +70,8 @@ episodes, loss_values, time_values = [], [], []
 agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
                                  queue_size=10000, batch_mode=True, batch_size=100, eps_decay=0.999)
 
+rl_eval = RLEvaluation()
+
 if load_model:
     agent.load_model()
 
@@ -80,11 +97,6 @@ for e in range(10000):
                 if hist is not None:
                     print("Episode {}, time {}, loss {:.2}, eps {:.4}".format(e, time, hist.history.get("loss")[0], agent.eps))
 
-                #if e % 10 == 0:
-                episodes.append(e)
-                time_values.append(time)
-                loss_values.append(hist.history.get("loss")[0]) if hist is not None else loss_values.append(0)
-
-                plot_time_loss(episodes, time_values, loss_values)
+                rl_eval.visualize_data(e, hist.history.get("loss")[0] if hist is not None else 0, time)
 
                 break
