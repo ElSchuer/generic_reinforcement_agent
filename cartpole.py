@@ -46,7 +46,6 @@ class RLEvaluation:
 load_model = False
 
 env = gym.make('CartPole-v1')
-#env = gym.make('Enduro-v0')
 
 # states: consists of sin and cos of the two joint angles and the angular velocities of the joints
 # [cos(theta1), sin(theta1), cos(theta2), sin(theta2), thetaDot1, thetaDot2]
@@ -60,15 +59,15 @@ print('action size', env.action_space.n)
 
 # model
 model = Sequential()
-model.add(Dense(32, input_dim=state_size, activation='relu'))
+model.add(Dense(64, input_dim=state_size, activation='relu'))
 model.add(Dense(64, activation='relu'))
-model.add(Dense(64, activation='relu'))
+#model.add(Dense(16, activation='relu'))
 model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
 
-agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
-                                 queue_size=10000, batch_mode=True, batch_size=100, eps_decay=0.999)
+agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.0001,
+                                 queue_size=100000, batch_mode=True, batch_size=500, eps_decay=0.995, eps_min=0.01)
 
 rl_eval = RLEvaluation()
 
@@ -78,6 +77,9 @@ if load_model:
 for e in range(10000):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
+
+        total_reward = 0
+
         for time in range(500):
             env.render()
 
@@ -86,7 +88,8 @@ for e in range(10000):
             next_state, reward, done, info = env.step(action)
             next_state = np.reshape(next_state, [1, state_size])
 
-            reward = reward if not done else -50
+            reward = reward if not done else -1
+            total_reward += reward
 
             hist = agent.train(state, next_state, reward, action, done)
 
@@ -95,7 +98,7 @@ for e in range(10000):
             if done:
                 agent.save_model()
                 if hist is not None:
-                    print("Episode {}, time {}, loss {:.2}, eps {:.4}".format(e, time, hist.history.get("loss")[0], agent.eps))
+                    print("Episode {}, time {}, loss {:.2}, eps {:.4}, reward {}".format(e, time, hist.history.get("loss")[0], agent.eps, total_reward))
 
                 rl_eval.visualize_data(e, hist.history.get("loss")[0] if hist is not None else 0, time)
 
