@@ -1,0 +1,13 @@
+Cartpole
+
+1. Instability Issues
+    - Tried to stop training once a good score was found
+        Network learned a rather unstable version where it always performed rather well but never completely learned to balance the pole for ever
+        Average score of about 380
+
+
+    - Tried to learn with a very small learning rate and a huge memory size to have a big variaty of states and a slow convergence
+        Ended up with a average score of about 150 with a rather unstable behaviour sometimes resulting in scores below 100
+
+
+    - Implementing a target network wich is only updated after a x timesteps to predict the future q value

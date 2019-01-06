@@ -5,27 +5,7 @@ import seaborn as sns
 from keras import Sequential
 from keras.layers import Dense
 import dqn_agent
-
-sns.set(style="whitegrid")
-
-def plot_time_loss(episodes, time_values, loss_values):
-    plt.ion()
-    plt.figure(1)
-    plt.subplot(211)
-    plt.plot(episodes, time_values)
-    plt.draw()
-    plt.pause(0.001)
-    plt.ylabel("time values")
-    plt.xlabel("episodes")
-
-    plt.subplot(212)
-    plt.plot(episodes, loss_values)
-    plt.draw()
-    plt.pause(0.001)
-    plt.ylabel("loss values")
-    plt.xlabel("episodes")
-
-    plt.show(block=False)
+import eval
 
 load_model = False
 
@@ -53,12 +33,17 @@ episodes, loss_values, time_values = [], [], []
 agent = dqn_agent.QLearningAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
                                  queue_size=2000, batch_mode=True, batch_size=50, eps_decay=0.995)
 
+rl_eval = eval.RLEvaluation()
+
 if load_model:
     agent.load_model()
 
 for e in range(10000):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
+
+        total_reward = 0
+
         for time in range(200):
             env.render()
 
@@ -67,13 +52,18 @@ for e in range(10000):
             next_state, reward, done, info = env.step(action)
             next_state = np.reshape(next_state, [1, state_size])
 
+            reward = abs(state[0][0] + 0.5)
+            if state[0][0] > -0.3:
+                reward*=2
+
+            total_reward += reward
+
             hist = agent.train(state, next_state, reward, action, done)
 
             # Adjust reward for task completion
             #if state[0][0] >= -0.3:
             #    reward += abs(state[0][0])
 
-            reward = abs(state[0][0] + 0.5)
 
             #print('reward', reward, ' state ', state[0][0])
 
@@ -83,13 +73,10 @@ for e in range(10000):
                 agent.save_model()
 
                 if hist is not None:
-                    print("Episode {}, time {}, loss {:.2}, eps {:.4}".format(e, time, hist.history.get("loss")[0], agent.eps))
+                    print("Episode {}, time {}, loss {:.2}, eps {:.4}, reward {}".format(e, time,
+                                                                                         hist.history.get("loss")[0],
+                                                                                         agent.eps, total_reward))
 
-                if e % 10 == 0:
-                    episodes.append(e)
-                    time_values.append(time)
-                    loss_values.append(hist.history.get("loss")[0]) if hist is not None else loss_values.append(0)
-
-                    plot_time_loss(episodes, time_values, loss_values)
+                rl_eval.visualize_data(e, hist.history.get("loss")[0] if hist is not None else 0, time)
 
                 break
