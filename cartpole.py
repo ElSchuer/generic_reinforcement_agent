@@ -28,8 +28,8 @@ model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
 
-agent = dqn_agent.TargetDeepQAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.0001,
-                                 queue_size=10000, batch_mode=True, batch_size=50, eps_decay=0.999, eps_min=0.001)
+agent = dqn_agent.TargetDeepQAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
+                                 queue_size=10000, batch_mode=True, batch_size=500, eps_decay=0.999, eps_min=0.01)
 
 rl_eval = eval.RLEvaluation()
 

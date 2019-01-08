@@ -2,6 +2,8 @@ import numpy as np
 import random
 from collections import deque
 from keras.optimizers import Adam
+from keras import backend as K
+import tensorflow as tf
 
 
 class SimpleDeepQAgent:
@@ -22,8 +24,7 @@ class SimpleDeepQAgent:
         self.data_batch = deque(maxlen=queue_size)
 
         self.model = model
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
-
+        #self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
     def save_model(self):
         self.model.save(self.model_name)
@@ -86,9 +87,26 @@ class TargetDeepQAgent(SimpleDeepQAgent):
                          batch_mode=batch_mode, batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
                          queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
 
-        self.target_model = model
+        self.model.compile(loss=self.huber_loss, optimizer=Adam(lr=self.learning_rate))
+        self.target_model = self.model
         self.update_steps = update_steps
         self.step = 0
+
+
+    def huber_loss(self, y_true, y_pred, clipping_delta=1.0):
+        ## hueber loss function
+
+        err = y_true - y_pred
+
+        cond = K.abs(err) < clipping_delta
+
+        squared_loss = 0.5 * K.square(err)
+        quadratic_loss = 0.5 * K.square(clipping_delta) + clipping_delta * (K.abs(err) - clipping_delta)
+
+        loss = tf.where(cond, squared_loss, quadratic_loss)
+
+        return K.mean(loss)
+
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
