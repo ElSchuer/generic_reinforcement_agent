@@ -7,7 +7,8 @@ import eval
 
 load_model = False
 
-env = gym.make('CartPole-v0')
+env = gym.make('CartPole-v1')
+max_score = 499
 
 # states: consists of sin and cos of the two joint angles and the angular velocities of the joints
 # [cos(theta1), sin(theta1), cos(theta2), sin(theta2), thetaDot1, thetaDot2]
@@ -21,15 +22,14 @@ print('action size', env.action_space.n)
 
 # model
 model = Sequential()
-model.add(Dense(64, input_dim=state_size, activation='relu'))
-model.add(Dense(64, activation='relu'))
-#model.add(Dense(16, activation='relu'))
+model.add(Dense(256, input_dim=state_size, activation='relu'))
+model.add(Dense(256, activation='relu'))
 model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
 
 agent = dqn_agent.TargetDeepQAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
-                                 queue_size=10000, batch_mode=True, batch_size=300, eps_decay=0.999, eps_min=0.01)
+                                 queue_size=50000, batch_size=1000, eps_decay=0.999, eps_min=0.02, decay_rate=0.99)
 
 rl_eval = eval.RLEvaluation()
 
@@ -42,7 +42,7 @@ for e in range(10000):
 
         total_reward = 0
 
-        for time in range(500):
+        for time in range(max_score+1):
             env.render()
 
             action = agent.act(state)
@@ -50,7 +50,8 @@ for e in range(10000):
             next_state, reward, done, info = env.step(action)
             next_state = np.reshape(next_state, [1, state_size])
 
-            reward = reward if not done else -10
+            #reward = reward if not done else -10
+            reward = -10 if done and time < max_score else reward
             total_reward += reward
 
             hist = agent.train(state, next_state, reward, action, done)
