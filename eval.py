@@ -19,7 +19,7 @@ class RLEvaluation:
         plt.show(block=False)
 
     def plot_train_loss(self):
-        self.loss_plot.plot(self.episodes, self.loss_values)
+        self.loss_plot.semilogy(self.episodes, self.loss_values)
         plt.draw()
         plt.pause(0.001)
 
