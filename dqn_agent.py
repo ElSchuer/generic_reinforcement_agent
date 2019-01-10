@@ -5,26 +5,22 @@ from keras.optimizers import Adam
 from keras import backend as K
 import tensorflow as tf
 
+class DeepQAgent:
 
-class SimpleDeepQAgent:
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, batch_mode=True, batch_size=100, model_name='model.h5', learning_rate = 0.001, queue_size=10000,
-                 eps_start = 1.0, eps_min = 0.01, eps_decay = 0.999):
-        self.decay_rate = decay_rate
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000):
+        self.model_name = model_name
+
         self.state_size = state_size
         self.action_size = action_size
 
-        self.model_name = model_name
-
-        self.eps = eps_start
-        self.eps_min = eps_min
-        self.eps_decay = eps_decay
         self.learning_rate = learning_rate
+        self.decay_rate = decay_rate
 
         self.batch_size = batch_size
         self.data_batch = deque(maxlen=queue_size)
 
         self.model = model
-        #self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
     def save_model(self):
         self.model.save(self.model_name)
@@ -33,23 +29,13 @@ class SimpleDeepQAgent:
         self.model.load_weights(self.model_name)
 
     def act(self, state):
-
-        if np.random.rand() <= self.eps:
-            return random.randrange(self.action_size)
-
         return np.argmax(self.model.predict(state))
-
-    def decay_epsilon(self):
-        if self.eps > self.eps_min:
-            self.eps *= self.eps_decay
 
     def train(self, state, next_state, reward, action, done):
         self.data_batch.append([state, next_state, reward, action, done])
 
         if len(self.data_batch) >= self.batch_size:
-            self.decay_epsilon()
             return self.train_batch()
-
 
     def train_batch(self):
 
@@ -77,14 +63,43 @@ class SimpleDeepQAgent:
 
         return history
 
+class EGreegyDeepQAgent(DeepQAgent):
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999):
+        
+        super(EGreegyDeepQAgent, self).__init__(state_size, action_size=action_size, model=model, learning_rate=learning_rate, model_name=model_name,
+                                                batch_size=batch_size, queue_size=queue_size, decay_rate=decay_rate)
 
-class TargetDeepQAgent(SimpleDeepQAgent):
+        self.eps = eps_start
+        self.eps_min = eps_min
+        self.eps_decay = eps_decay
 
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, batch_mode=True, batch_size=100, model_name='model.h5', learning_rate = 0.001, queue_size=10000,
-                 eps_start = 1.0, eps_min = 0.01, eps_decay = 0.999, update_steps = 5000):
+    def act(self, state):
+
+        if np.random.rand() <= self.eps:
+            return random.randrange(self.action_size)
+
+        return np.argmax(self.model.predict(state))
+
+    def decay_epsilon(self):
+        if self.eps > self.eps_min:
+            self.eps *= self.eps_decay
+
+    def train(self, state, next_state, reward, action, done):
+        self.data_batch.append([state, next_state, reward, action, done])
+
+        if len(self.data_batch) >= self.batch_size:
+            self.decay_epsilon()
+            return self.train_batch()
+
+
+class TargetDeepQAgent(EGreegyDeepQAgent):
+
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
 
         super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
-                         batch_mode=batch_mode, batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
+                         batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
                          queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
 
         self.model.compile(loss=self.huber_loss, optimizer=Adam(lr=self.learning_rate))
