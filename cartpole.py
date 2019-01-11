@@ -10,6 +10,9 @@ load_model = False
 env = gym.make('CartPole-v1')
 max_score = 499
 
+np.random.seed(123)
+env.seed(123)
+
 # states: consists of sin and cos of the two joint angles and the angular velocities of the joints
 # [cos(theta1), sin(theta1), cos(theta2), sin(theta2), thetaDot1, thetaDot2]
 state_size = env.observation_space.shape[0]
@@ -28,8 +31,8 @@ model.add(Dense(action_size, activation='linear'))
 
 episodes, loss_values, time_values = [], [], []
 
-agent = dqn_agent.TargetDeepQAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.001,
-                                 queue_size=50000, batch_size=1000, eps_decay=0.999, eps_min=0.02, decay_rate=0.99)
+agent = dqn_agent.TargetDeepQAgent(state_size=state_size, action_size=action_size, model=model, learning_rate=0.0001,
+                                 queue_size=50000, batch_size=1500, eps_decay=0.999, eps_min=0.02, decay_rate=0.95)
 
 rl_eval = eval.RLEvaluation()
 
