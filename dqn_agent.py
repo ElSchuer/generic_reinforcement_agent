@@ -2,10 +2,12 @@ import numpy as np
 import random
 from collections import deque
 from keras.optimizers import Adam
+from keras import Sequential
+from keras.layers import Dense
 from keras import backend as K
 import tensorflow as tf
 
-class DeepQAgent:
+class DQNAgent:
 
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000):
         self.model_name = model_name
@@ -63,11 +65,11 @@ class DeepQAgent:
 
         return history
 
-class EGreegyDeepQAgent(DeepQAgent):
+class EGreegyDQNAgent(DQNAgent):
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999):
         
-        super(EGreegyDeepQAgent, self).__init__(state_size, action_size=action_size, model=model, learning_rate=learning_rate, model_name=model_name,
+        super(EGreegyDQNAgent, self).__init__(state_size, action_size=action_size, model=model, learning_rate=learning_rate, model_name=model_name,
                                                 batch_size=batch_size, queue_size=queue_size, decay_rate=decay_rate)
 
         self.eps = eps_start
@@ -92,9 +94,7 @@ class EGreegyDeepQAgent(DeepQAgent):
             self.decay_epsilon()
             return self.train_batch()
 
-
-class TargetDeepQAgent(EGreegyDeepQAgent):
-
+class HuberLossDQNAgent(EGreegyDQNAgent):
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
 
@@ -103,9 +103,6 @@ class TargetDeepQAgent(EGreegyDeepQAgent):
                          queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
 
         self.model.compile(loss=self.huber_loss, optimizer=Adam(lr=self.learning_rate))
-        self.target_model = self.model
-        self.update_steps = update_steps
-        self.step = 0
 
 
     def huber_loss(self, y_true, y_pred, clipping_delta=1.0):
@@ -121,6 +118,20 @@ class TargetDeepQAgent(EGreegyDeepQAgent):
         loss = tf.where(cond, squared_loss, quadratic_loss)
 
         return K.mean(loss)
+
+
+class TargetNetworkDQNNAgent(HuberLossDQNAgent):
+
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
+
+        super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
+                         batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
+
+        self.target_model = self.model
+        self.update_steps = update_steps
+        self.step = 0
 
 
     def update_target_model(self):
@@ -164,3 +175,54 @@ class TargetDeepQAgent(EGreegyDeepQAgent):
         if len(self.data_batch) >= self.batch_size:
             self.decay_epsilon()
             return self.train_batch()
+
+class DoubleDQNAgent(TargetNetworkDQNNAgent):
+
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
+
+        super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
+                         batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
+
+    def train_batch(self):
+        tmp_batch = random.sample(self.data_batch, self.batch_size)
+
+        states = []
+        targets = []
+
+        for state, next_state, reward, action, done in tmp_batch:
+
+            # q(a,s)
+            target = self.model.predict(state)
+
+            if done:
+                target[0][action] = reward
+            else:
+                # q(a', s')
+                q_target = self.target_model.predict(next_state)[0]
+                q_next = self.model.predict(next_state)[0]
+                next_action = np.argmax(q_next)
+                target[0][action] = reward + self.decay_rate * q_target[next_action]
+
+            states.append(state[0])
+            targets.append(target[0])
+
+        history = self.model.fit(np.array(states), np.array(targets), verbose=0, epochs=1)
+
+        return history
+
+class DuelingDDQNAgent(TargetNetworkDQNNAgent):
+
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
+
+        super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
+                         batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
+
+    def create_model(self):
+        model = Sequential()
+        model.add(Dense(128, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(128, activation='relu'))
+        model.add(Dense(self.action_size, activation='linear'))
