@@ -120,7 +120,7 @@ class HuberLossDQNAgent(EGreegyDQNAgent):
         return K.mean(loss)
 
 
-class TargetNetworkDQNNAgent(HuberLossDQNAgent):
+class TargetNetworkDQNNAgent(EGreegyDQNAgent):
 
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
