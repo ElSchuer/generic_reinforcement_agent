@@ -2,9 +2,10 @@ import numpy as np
 import random
 from collections import deque
 from keras.optimizers import Adam
-from keras import Sequential
+from keras.layers import Lambda
 from keras.layers import Dense
 from keras import backend as K
+from keras.models import Model
 import tensorflow as tf
 
 class DQNAgent:
@@ -38,6 +39,20 @@ class DQNAgent:
 
         if len(self.data_batch) >= self.batch_size:
             return self.train_batch()
+
+    def huber_loss(self, y_true, y_pred, clipping_delta=1.0):
+        ## hueber loss function
+
+        err = y_true - y_pred
+
+        cond = K.abs(err) < clipping_delta
+
+        squared_loss = 0.5 * K.square(err)
+        quadratic_loss = 0.5 * K.square(clipping_delta) + clipping_delta * (K.abs(err) - clipping_delta)
+
+        loss = tf.where(cond, squared_loss, quadratic_loss)
+
+        return K.mean(loss)
 
     def train_batch(self):
 
@@ -93,31 +108,6 @@ class EGreegyDQNAgent(DQNAgent):
         if len(self.data_batch) >= self.batch_size:
             self.decay_epsilon()
             return self.train_batch()
-
-class HuberLossDQNAgent(EGreegyDQNAgent):
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
-                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
-
-        super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
-                         batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
-                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
-
-        self.model.compile(loss=self.huber_loss, optimizer=Adam(lr=self.learning_rate))
-
-
-    def huber_loss(self, y_true, y_pred, clipping_delta=1.0):
-        ## hueber loss function
-
-        err = y_true - y_pred
-
-        cond = K.abs(err) < clipping_delta
-
-        squared_loss = 0.5 * K.square(err)
-        quadratic_loss = 0.5 * K.square(clipping_delta) + clipping_delta * (K.abs(err) - clipping_delta)
-
-        loss = tf.where(cond, squared_loss, quadratic_loss)
-
-        return K.mean(loss)
 
 
 class TargetNetworkDQNNAgent(EGreegyDQNAgent):
@@ -217,12 +207,24 @@ class DuelingDDQNAgent(TargetNetworkDQNNAgent):
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
 
+        model = self.get_dueling_model(model, action_size)
+
         super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
                          queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
 
-    def create_model(self):
-        model = Sequential()
-        model.add(Dense(128, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(128, activation='relu'))
-        model.add(Dense(self.action_size, activation='linear'))
+
+
+    def get_dueling_model(self, model, action_size):
+
+        last_layer = model.layers[-2]
+
+        y = Dense(action_size + 1, activation='linear')(last_layer.output)
+        outputlayer = Lambda(lambda a: K.expand_dims(a[:, 0], -1) + a[:, 1:] - K.mean(a[:, 1:], axis=1, keepdims=True),
+                             output_shape=(action_size,))(y)
+
+        model = Model(inputs = model.input, outputs = outputlayer)
+
+        model.summary()
+
+        return model
