@@ -19,6 +19,9 @@ class Environment:
     def set_agent(self, agent):
         self.agent = agent
 
+    def train_agent(self):
+        self.agent.train()
+
     def set_reward_func(self, reward_func):
         self.reward_func = reward_func
 
@@ -47,6 +50,10 @@ class GymEnvironment(Environment):
     def step(self, action):
         return self.env.step(action)
 
+    def train_agent(self):
+        if len(self.agent.data_batch) >= self.agent.batch_size:
+            return self.agent.train()
+
     def learn(self):
         for e in range(10000):
             state = self.env.reset()
@@ -66,7 +73,9 @@ class GymEnvironment(Environment):
                 reward = self.get_reward(state, done, s, self.max_score, reward)
                 total_reward += reward
 
-                hist = self.agent.train(state, next_state, reward, action, done)
+                self.agent.remember(state, next_state, reward, action, done)
+
+                hist = self.train_agent()
 
                 state = next_state
 

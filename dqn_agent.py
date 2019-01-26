@@ -34,11 +34,11 @@ class DQNAgent:
     def act(self, state):
         return np.argmax(self.model.predict(state))
 
-    def train(self, state, next_state, reward, action, done):
+    def remember(self, state, next_state, reward, action, done):
         self.data_batch.append([state, next_state, reward, action, done])
 
-        if len(self.data_batch) >= self.batch_size:
-            return self.train_batch()
+    def train(self):
+        return self.train_batch()
 
     def huber_loss(self, y_true, y_pred, clipping_delta=1.0):
         ## hueber loss function
@@ -102,12 +102,9 @@ class EGreegyDQNAgent(DQNAgent):
         if self.eps > self.eps_min:
             self.eps *= self.eps_decay
 
-    def train(self, state, next_state, reward, action, done):
-        self.data_batch.append([state, next_state, reward, action, done])
-
-        if len(self.data_batch) >= self.batch_size:
-            self.decay_epsilon()
-            return self.train_batch()
+    def train(self):
+        self.decay_epsilon()
+        return self.train_batch()
 
 
 class TargetNetworkDQNNAgent(EGreegyDQNAgent):
@@ -125,8 +122,11 @@ class TargetNetworkDQNNAgent(EGreegyDQNAgent):
 
 
     def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
-        print("Update target model")
+        if self.step % self.update_steps == 0:
+            self.target_model.set_weights(self.model.get_weights())
+            print("Update target model")
+
+        self.step += 1
 
     def train_batch(self):
 
@@ -154,24 +154,17 @@ class TargetNetworkDQNNAgent(EGreegyDQNAgent):
 
         return history
 
-    def train(self, state, next_state, reward, action, done):
-        self.data_batch.append([state, next_state, reward, action, done])
+    def remember(self, state, next_state, reward, action, done):
+        self.update_target_model()
+        super().remember(state, next_state, reward, action, done)
 
-        if self.step % self.update_steps == 0:
-            self.update_target_model()
-
-        self.step += 1
-
-        if len(self.data_batch) >= self.batch_size:
-            self.decay_epsilon()
-            return self.train_batch()
 
 class DoubleDQNAgent(TargetNetworkDQNNAgent):
 
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
 
-        super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
+        super().__init__(self, state_size=state_size, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
                          queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
 
