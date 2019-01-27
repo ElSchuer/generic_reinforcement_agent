@@ -214,9 +214,10 @@ class DuelingDDQNAgent(TargetNetworkDQNNAgent):
     def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
                  batch_size=100, queue_size=10000,
                  eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps=5000, loss='mse', dueling_type='naive'):
-        model = self.get_dueling_model(model, action_size)
 
         self.dueling_type = dueling_type
+
+        model = self.get_dueling_model(model, action_size)
 
         super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
