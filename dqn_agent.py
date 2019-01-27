@@ -8,9 +8,11 @@ from keras import backend as K
 from keras.models import Model
 import tensorflow as tf
 
+
 class DQNAgent:
 
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000):
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
+                 batch_size=100, queue_size=10000, loss='mse'):
         self.model_name = model_name
 
         self.state_size = state_size
@@ -23,7 +25,11 @@ class DQNAgent:
         self.data_batch = deque(maxlen=queue_size)
 
         self.model = model
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+
+        if loss == 'huber':
+            self.model.compile(loss=self.huber_loss, optimizer=Adam(lr=self.learning_rate))
+        else:
+            self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
     def save_model(self):
         self.model.save(self.model_name)
@@ -80,12 +86,16 @@ class DQNAgent:
 
         return history
 
+
 class EGreegyDQNAgent(DQNAgent):
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
-                 eps_start=1.0, eps_min=0.01, eps_decay=0.999):
-        
-        super(EGreegyDQNAgent, self).__init__(state_size, action_size=action_size, model=model, learning_rate=learning_rate, model_name=model_name,
-                                                batch_size=batch_size, queue_size=queue_size, decay_rate=decay_rate)
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
+                 batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, loss='mse'):
+
+        super(EGreegyDQNAgent, self).__init__(state_size, action_size=action_size, model=model,
+                                              learning_rate=learning_rate, model_name=model_name,
+                                              batch_size=batch_size, queue_size=queue_size, decay_rate=decay_rate,
+                                              loss=loss)
 
         self.eps = eps_start
         self.eps_min = eps_min
@@ -109,17 +119,17 @@ class EGreegyDQNAgent(DQNAgent):
 
 class TargetNetworkDQNNAgent(EGreegyDQNAgent):
 
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
-                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
+                 batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps=5000, loss='mse'):
 
         super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
-                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay)
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, loss=loss)
 
         self.target_model = self.model
         self.update_steps = update_steps
         self.step = 0
-
 
     def update_target_model(self):
         if self.step % self.update_steps == 0:
@@ -156,17 +166,20 @@ class TargetNetworkDQNNAgent(EGreegyDQNAgent):
 
     def remember(self, state, next_state, reward, action, done):
         self.update_target_model()
+
         super().remember(state, next_state, reward, action, done)
 
 
 class DoubleDQNAgent(TargetNetworkDQNNAgent):
 
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
-                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
+                 batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps=5000, loss='mse'):
 
         super().__init__(self, state_size=state_size, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
-                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay,
+                         update_steps=update_steps, loss=loss)
 
     def train_batch(self):
         tmp_batch = random.sample(self.data_batch, self.batch_size)
@@ -195,28 +208,27 @@ class DoubleDQNAgent(TargetNetworkDQNNAgent):
 
         return history
 
+
 class DuelingDDQNAgent(TargetNetworkDQNNAgent):
 
-    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5', batch_size=100, queue_size=10000,
-                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps = 5000):
-
+    def __init__(self, state_size, action_size, model, decay_rate=0.95, learning_rate=0.001, model_name='model.h5',
+                 batch_size=100, queue_size=10000,
+                 eps_start=1.0, eps_min=0.01, eps_decay=0.999, update_steps=5000, loss='mse'):
         model = self.get_dueling_model(model, action_size)
 
         super().__init__(self, action_size=action_size, model=model, decay_rate=decay_rate,
                          batch_size=batch_size, model_name=model_name, learning_rate=learning_rate,
-                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay, update_steps=update_steps)
-
-
+                         queue_size=queue_size, eps_start=eps_start, eps_min=eps_min, eps_decay=eps_decay,
+                         update_steps=update_steps, loss=loss)
 
     def get_dueling_model(self, model, action_size):
-
         last_layer = model.layers[-2]
 
         y = Dense(action_size + 1, activation='linear')(last_layer.output)
         outputlayer = Lambda(lambda a: K.expand_dims(a[:, 0], -1) + a[:, 1:] - K.mean(a[:, 1:], axis=1, keepdims=True),
                              output_shape=(action_size,))(y)
 
-        model = Model(inputs = model.input, outputs = outputlayer)
+        model = Model(inputs=model.input, outputs=outputlayer)
 
         model.summary()
 

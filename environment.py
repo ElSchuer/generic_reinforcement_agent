@@ -12,8 +12,7 @@ class Environment:
 
         np.random.seed(seed)
 
-
-    def step(self):
+    def step(self, action):
         pass
 
     def set_agent(self, agent):
