@@ -60,6 +60,8 @@ class GymEnvironment(Environment):
 
             total_reward = 0
 
+            loss_values = []
+
             for s in range(self.max_score + 1):
                 if self.render_env == True:
                     self.env.render()
@@ -78,13 +80,16 @@ class GymEnvironment(Environment):
 
                 state = next_state
 
+                if hist is not None:
+                    loss_values.append(hist.history.get("loss")[0])
+
                 if done:
                     self.agent.save_model()
-                    if hist is not None:
-                        print("Episode {}, score {}, loss {:.2}, eps {:.4}, reward {}".format(e, s,
-                            hist.history.get("loss")[0], self.agent.eps, total_reward))
 
-                    self.eval_inst.visualize_data(e, hist.history.get("loss")[0] if hist is not None else 0, s)
+                    print("Episode {}, score {}, loss {:.2}, eps {:.4}, reward {}".format(e, s,
+                           np.mean(loss_values), self.agent.eps, total_reward))
+
+                    self.eval_inst.visualize_data(e, np.mean(loss_values), s)
 
                     break
 
