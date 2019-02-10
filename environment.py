@@ -3,7 +3,7 @@ import numpy as np
 
 class Environment:
 
-    def __init__(self, max_episodes = 10000, seed=10):
+    def __init__(self, max_episodes=10000, seed=10):
         self.max_episodes = max_episodes
 
         self.agent = None
@@ -29,8 +29,8 @@ class Environment:
 
 class GymEnvironment(Environment):
 
-    def __init__(self, env_name, eval_inst, seed = 10, max_score = 500, render_env = True):
-        super().__init__(self, seed=seed)
+    def __init__(self, env_name, eval_inst, seed=10, max_score=500, render_env=True, max_episodes=10000):
+        super().__init__(self, max_episodes=max_episodes, seed=seed)
 
         self.env = gym.make(env_name)
         self.env.seed(self.seed)

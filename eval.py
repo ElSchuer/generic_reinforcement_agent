@@ -42,3 +42,12 @@ class RLEvaluation:
             self.plot_train_loss()
 
             print("Mean Score : {}, total_steps: {}".format(np.mean(self.score_values[-self.mean_subset:]), np.sum(self.score_values)))
+
+    def save_plot(self, name):
+        plt.savefig(name)
+
+    def reset(self):
+        self.episodes = []
+        self.loss_values = []
+        self.score_values = []
+        self.mean_scores = []
