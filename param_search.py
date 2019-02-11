@@ -9,13 +9,14 @@ batch_space = [64, 256, 512]
 learning_rate_space = [0.001, 0.0005, 0.0001]
 eps_min_space = [0.01, 0.1, 0.2]
 max_episodes = 150
+env_name = 'CartPole-v1'
 
 def reward_function(state, done, score, max_score, reward):
     reward = -10 if done and score < max_score else score
     return reward
 
 eval_inst = eval.RLEvaluation()
-env = environment.GymEnvironment('CartPole-v1', eval_inst=eval_inst, max_score=500, render_env=False, max_episodes=max_episodes)
+env = environment.GymEnvironment(env_name, eval_inst=eval_inst, max_score=500, render_env=False, max_episodes=max_episodes)
 
 # model
 model = Sequential()
@@ -41,6 +42,7 @@ for batch in batch_space:
 
             env.learn()
 
-            eval_inst.save_plot("test")
+            plot_filename = env_name + '_' + 'b' + str(batch) + '_l' + str(lr) + '_e' + str(eps_min) + '.jpeg'
+            eval_inst.save_plot('./log/', plot_filename)
             eval_inst.reset()
 
