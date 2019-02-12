@@ -30,7 +30,7 @@ class Environment:
 class GymEnvironment(Environment):
 
     def __init__(self, env_name, eval_inst, seed=10, max_score=500, render_env=True, max_episodes=10000):
-        super().__init__(max_episodes=max_episodes, seed=seed)
+        super().__init__(seed=seed, max_episodes=max_episodes)
 
         self.env = gym.make(env_name)
         self.env.seed(self.seed)
@@ -54,7 +54,7 @@ class GymEnvironment(Environment):
             return self.agent.train()
 
     def learn(self):
-        for e in range(self.max_episodes):
+        for e in range(10000):
             state = self.env.reset()
             state = np.reshape(state, [1, self.state_size])
 
@@ -87,7 +87,7 @@ class GymEnvironment(Environment):
                     self.agent.save_model()
 
                     print("Episode {}, score {}, loss {:.2}, eps {:.4}, reward {}".format(e, s,
-                           np.mean(loss_values), self.agent.eps, total_reward))
+                           np.mean(loss_values), float(self.agent.eps), total_reward))
 
                     self.eval_inst.visualize_data(e, np.mean(loss_values), s)
 
