@@ -54,7 +54,7 @@ class GymEnvironment(Environment):
             return self.agent.train()
 
     def learn(self):
-        for e in range(10000):
+        for e in range(self.max_episodes):
             state = self.env.reset()
             state = np.reshape(state, [1, self.state_size])
 
