@@ -21,6 +21,8 @@ class RLEvaluation:
         self.score_plot.set_xlabel("episodes")
         plt.show(block=False)
 
+    #def plot_reward(self, memory, reward_function):
+
     def plot_train_loss(self):
         self.loss_plot.semilogy(self.episodes, self.loss_values)
         plt.draw()

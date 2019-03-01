@@ -7,8 +7,8 @@ import environment
 batch_space = [64, 256, 512]
 learning_rate_space = [0.001, 0.0005, 0.0001]
 eps_min_space = [0.01, 0.1, 0.2]
-max_episodes = 150
-env_name = 'CartPole-v1'
+max_episodes = 100
+env_name = 'MountainCar-v0'
 
 
 def get_model(state_size, action_size):
@@ -19,10 +19,13 @@ def get_model(state_size, action_size):
 
     return model
 
-
 def reward_function(state, done, score, max_score, reward):
-    reward = -10 if done and score < max_score else score
+    reward = 1 if done and score < max_score - 1 else -1
     return reward
+
+#def reward_function(state, done, score, max_score, reward):
+#   reward = -10 if done and score < max_score else score
+#    return reward
 
 
 eval_inst = eval.RLEvaluation()
