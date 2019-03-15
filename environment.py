@@ -25,7 +25,7 @@ class Environment:
         self.reward_func = reward_func
 
     def get_reward(self, state, done, score, max_score, reward):
-        return self.reward_func(state, done, score, max_score, reward)
+        return self.reward_func(state[0], done, score, max_score, reward)
 
 class GymEnvironment(Environment):
 
@@ -45,6 +45,9 @@ class GymEnvironment(Environment):
         self.action_size = self.env.action_space.n
         print('action space', self.env.action_space)
         print('action size', self.env.action_space.n)
+
+    def get_state_space(self):
+        return [self.env.observation_space.low, self.env.observation_space.high]
 
     def step(self, action):
         return self.env.step(action)

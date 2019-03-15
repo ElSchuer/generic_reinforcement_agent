@@ -1,26 +1,29 @@
 from keras import Sequential
 from keras.layers import Dense
+import numpy as np
+import matplotlib.pyplot as plt
 import dqn_agent
 import eval
 import environment
 
 def reward_function(state, done, score, max_score, reward):
 
-    state = state[0]
-
-    # Adjust reward based on car position
-    #reward = state[0] + 0.5
-
-    # Adjust reward for task completion
-    if state[0] >= 0.5:
-        reward += 1
+    if state[0] >= -0.5:
+        reward = (state[0] + 0.5) / 1.1
+    else:
+        return 0
 
     return reward
 
+def create_states(state_space, state_size, num_of_states=20):
+    states = []
+    [states.append(np.linspace(state_space[0][s], state_space[1][s], num_of_states)) for s in range(state_size)]
+    return np.array(states).T
+
 def get_model(state_size, action_size):
     model = Sequential()
-    model.add(Dense(64, input_dim=state_size, activation='relu'))
-    model.add(Dense(64, activation='relu'))
+    model.add(Dense(128, input_dim=state_size, activation='relu'))
+    model.add(Dense(128, activation='relu'))
     model.add(Dense(action_size, activation='linear'))
 
     return model
@@ -36,7 +39,15 @@ agent = dqn_agent.DQNAgent(state_size=env.state_size, action_size=env.action_siz
 agent.enable_target_network(update_steps=10000)
 agent.enable_double_dqn()
 agent.enable_epsilon_greedy(eps_decay=0.999, eps_min=0.1, eps_start=1.0)
-#agent.enable_dueling_dqn(dueling_type='mean')
+agent.enable_dueling_dqn(dueling_type='mean')
+
+state_space = env.get_state_space()
+states = create_states(state_space, 2, 50)
+
+rewards = []
+[rewards.append(reward_function(s, False, 0, 200, -1)) for s in states]
+
+eval_inst.plot_reward(rewards, states)
 
 env.set_agent(agent)
 env.set_reward_func(reward_function)
